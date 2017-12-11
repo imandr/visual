@@ -1,0 +1,156 @@
+<html>
+<head>
+    <script src="https://d3js.org/d3.v4.js"></script>
+</head>
+
+<body>
+    <svg id="clock"></svg>
+
+    <script>
+        var Size = 500;
+        var Center = Size/2;
+        var Margin = 30;
+        var NSecond = 10;
+        var NMinute = 8;
+        var NHour = 5;
+        var Step = 1.0/(NSecond + 1);
+        var R = Size/2 - Margin;
+        
+        var Marks = [];
+        
+        for ( var i = 0; i < 12; i++ )
+        {
+            var phi = i * Math.PI/6;
+            Marks.push({
+                index: i,
+                x: Math.sin(phi), y: Math.cos(phi)
+            })
+        }
+        
+        Seconds = [];
+        for( var i = 0; i < NSecond; i++ )
+            Seconds.push({
+                r: (i+1)*Step
+            });
+
+        Minutes = [];
+        for( var i = 0; i < NMinute; i++ )
+            Minutes.push({
+                r: (i+1)*Step
+                });
+
+        Hours = [];
+        for( var i = 0; i < NHour; i++ )
+            Hours.push({
+                r: (i+1)*Step
+            });
+
+        var ScaleX = d3.scaleLinear()
+            .domain([-1.0, 1.0])
+            .range([Center-R, Center+R]);
+
+        var ScaleY = d3.scaleLinear()
+            .domain([-1.0, 1.0])
+            .range([Center+R, Center-R]);
+
+        function x(p, r)
+        {
+            return ScaleX(r*Math.sin(p));
+        }
+        function y(p, r)
+        {
+            return ScaleY(r*Math.cos(p));
+        }
+
+        function secondDot(t, i, r, cvt)
+        {
+            var s = t % 60;
+            var p = Math.PI*2/60*s;
+            return cvt(p, r);
+        }
+
+        function hourDot(t, i, r, cvt)
+        {
+            var h = (t % (3600*24))/3600.0;
+            h = (t % (3600*12))/(3600.0*12.0);
+            var p = Math.PI*2 * h;
+            return cvt(p, r);
+        }
+
+        function minuteDot(t, i, r, cvt)
+        {
+            var m = (t % 3600)/3600.0;
+            var p = Math.PI*2 * m;
+            return cvt(p, r);
+        }
+
+        var svg = d3.select("#clock")
+            .attr("width", Size)
+            .attr("height", Size);
+        
+        var marks = svg.selectAll(".mark")
+            .data(Marks)
+            .enter()
+            .append("circle").classed("mark", true)
+                .attr("r", function(d, i) { return (i % 3) ? 3 : 5; })
+                .attr("cx", function(d){ return ScaleX(d.x);})
+                .attr("cy", function(d){ return ScaleY(d.y);})
+                .attr("fill", "black");
+                
+        var seconds = svg.selectAll(".second")
+                .data(Seconds)
+                .enter()
+                .append("circle").classed("second", true)
+                    .attr("r", 2);
+                    
+        var minutes = svg.selectAll(".minute")
+                .data(Minutes)
+                .enter()
+                .append("circle").classed("minute", true)
+                    .attr("r", 3);
+                    
+        var hours = svg.selectAll(".hour")
+                .data(Hours)
+                .enter()
+                .append("circle").classed("hour", true)
+                    .attr("r", 4);
+        
+        
+        //var timer = d3.timer(
+        
+        setInterval(
+            function()
+            {
+                var d = new Date();
+                var t = d.getTime();
+                t = Math.round(t/1000.0) - d.getTimezoneOffset()*60;
+                
+                seconds
+                    .attr("fill", "black")
+                    .transition()
+                        .duration(250)
+                    .attr("cx", function(d, i) { return secondDot(t, i, d.r, x); })
+                    .attr("cy", function(d, i) { return secondDot(t, i, d.r, y); });
+                
+                minutes
+                    .attr("fill", "black")
+                    .transition()
+                    .attr("cx", function(d, i) { return minuteDot(t, i, d.r, x); })
+                    .attr("cy", function(d, i) { return minuteDot(t, i, d.r, y); });
+                    
+                hours
+                    .attr("fill", "black")
+                    .transition()
+                        .duration(250)
+                    .attr("cx", function(d, i) { return hourDot(t, i, d.r, x); })
+                    .attr("cy", function(d, i) { return hourDot(t, i, d.r, y); });
+                    
+            },
+            100
+        )
+        
+    </script>
+
+
+</body>
+</html>

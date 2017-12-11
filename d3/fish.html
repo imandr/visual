@@ -1,0 +1,154 @@
+<html>
+<head>
+    <script src="https://d3js.org/d3.v4.js"></script>
+</head>
+
+<body>
+    <svg id="world"></svg>
+    <p>Alpha:<span id="alpha"></span></p>
+
+    <script>
+        var MaxX = 1000.0, MaxY = 1000.0;
+        var Width = 500, Height = 500;
+        var NNodes = 10;
+        var EndAlpha = 1.0;
+
+        var ScaleX = d3.scaleLinear()
+            .domain([0.0, MaxX])
+            .range([0.0, Width]);
+            
+        var ScaleY = d3.scaleLinear()
+            .domain([0.0, MaxY])
+            .range([0.0, Height]);
+
+        var fish = [];
+        for(var i=0; i<10; i++)
+        {
+            fish.push({index:i, 
+                x:Math.random()*MaxX,
+                y:Math.random()*MaxY,
+                vx:(Math.random()-0.5)*100.0,
+                vy:(Math.random()-0.5)*100.0
+            });
+        }
+                
+        var simulation = d3.forceSimulation()
+        
+        function initSVG(fish, width, height)
+        {
+            var svg = d3.select("#world");
+            svg
+                .attr("width", width)
+                .attr("height", height);
+            return svg
+                .selectAll("circle")
+                .data(fish)
+                .enter()
+                .append("circle")
+                    //.attr("cx", function(d){ return ScaleX(d.x) })
+                    //.attr("cy", function(d){ return ScaleY(d.y) })
+                    .attr("r", 5);
+        }
+        
+        function schoolForce(alpha)
+        {
+            var nodes = schoolForce.nodes;
+            
+            for( var i in nodes )
+            {
+                var a = nodes[i];
+                var fx = 0.0, fy = 0.0;
+                for( var j in nodes )
+                    if ( i != j )
+                    {
+                        var b = nodes[j];
+                        var dx = b.x - a.x;
+                        var dy = b.y - a.y;
+                        var dist = Math.sqrt(dx*dx + dy*dy);
+                        var r;
+                        
+                        // repulsion
+                        if( dist < schoolForce.RDist )
+                        {
+                            r = (1.0-dist/schoolForce.RDist)**2;
+                            fx -= dx * r;
+                            fy -= dy * r;
+                        }
+                        
+                        // follow
+                        if( dist < 2*schoolForce.FDist )
+                        {
+                            var d = Math.abs(dist - schoolForce.FDist);
+                            r = (this.FDist - d)/schoolForce.FDist;
+                            fx += (b.vx - a.vx);
+                            fy += (b.vy - a.vy);
+                        }
+                        
+                        // attraction
+                        r = 1.0 - Math.exp(-dist/schoolForce.ADist)
+                        r = r**2;
+                        fx += dx * r;
+                        fy += dy * r;
+                    }
+                    
+                fx += Math.random() * schoolForce.Random;
+                fy += Math.random() * schoolForce.Random;
+
+                a.vx += fx * 0.001 * alpha;
+                a.vy += fy * 0.001 * alpha;
+                
+                
+                if( a.vx < 0 && a.x < -a.vx || a.vx > 0 && a.vx > MaxX - a.x )
+                    a.vx = 0;
+                if( a.vy < 0 && a.y < -a.vy || a.vy > 0 && a.vy > MaxY - a.y )
+                    a.vx = 0;
+                
+                var v = Math.sqrt(a.vx**2 + a.vy**2);
+                if( v > schoolForce.MaxV )
+                {
+                    a.vx = schoolForce.MaxV * a.vx/v;
+                    a.vy = schoolForce.MaxV * a.vy/v;
+                }
+                
+            }
+        }
+        
+        schoolForce.initialize = function(nodes)
+        {
+            schoolForce.RDist = 200.0;
+            schoolForce.FDist = 250.0;
+            schoolForce.ADist = 300.0;
+            schoolForce.MaxV = 20.0;
+            schoolForce.nodes = nodes;
+            schoolForce.Random = 200.0;
+        }
+        
+
+        var circles = initSVG(fish, Width, Height);
+        
+        function tick()
+        {
+            circles
+                .attr("cx", function(d){ 
+                    return ScaleX(d.x) 
+                })
+                .attr("cy", function(d){ 
+                    return ScaleY(d.y) 
+                });
+                
+            d3.select("#alpha").text(this.alpha());
+        }
+
+        simulation
+            .nodes(fish)
+            .on("tick", tick)
+            .force("school", schoolForce)
+            .alphaDecay(0.0);
+            
+        
+        
+    </script>
+
+
+</body>
+</html>
