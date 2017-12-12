@@ -1,0 +1,105 @@
+<html>
+<head>
+    <script src="https://d3js.org/d3.v4.js"></script>
+</head>
+
+<body>
+    <svg id="clock"></svg>
+
+    <script>
+        var Size = 500;
+        var Center = Size/2;
+        var Margin = 30;
+        var NSecond = 10;
+        var NMinute = 8;
+        var NHour = 6;
+        var Step = 1.0/(NSecond + 1);
+        var R = Size/2 - Margin;
+        
+        function phiSecond(t)
+        {
+            return 360.0 * (t%60)/60;
+        }
+
+        function phiHour(t, i, r, cvt)
+        {
+            return 360.0 * (t % (3600*12))/(3600.0*12.0);
+        }
+
+        function phiMinute(t, i, r, cvt)
+        {
+            return 360.0 * (t % 3600)/3600.0;
+        }
+
+        var svg = d3.select("#clock")
+            .attr("width", Size)
+            .attr("height", Size);
+
+        var translated = svg
+            .append("g").attr("transform", "translate(" + Center + " " + Center + ")," +
+                                            "scale(" + R + " " + -R + ")");
+                                            
+        var marks = translated.selectAll(".mark")
+            .data(d3.range(0, 12*3600, 3600.0))
+            .enter()
+            .append("circle").classed("mark", true)
+                .attr("cx", 0.0)
+                .attr("cy", 1.0)
+                .attr("transform", function(d){ return "rotate(" + (-phiHour(d)) + ")"; })
+                .attr("r", function(d, i) { return (i % 3) ? 0.01 : 0.02; })
+                .attr("fill", "black");
+                
+        var second_g = translated.append("g").attr("id", "second_g");
+        var minute_g = translated.append("g").attr("id", "minute_g");
+        var hour_g = translated.append("g").attr("id", "hour_g");
+        
+        var seconds = second_g.selectAll("circle")
+                .data(d3.range(NSecond))
+                .enter()
+                .append("circle").classed("second", true)
+                    .attr("r", 0.01)
+                    .attr("cy", function(d){ return Step*(d+1); })
+                    .attr("cx", 0.0);
+                    
+        var minutes = minute_g.selectAll("circle")
+                .data(d3.range(NMinute))
+                .enter()
+                .append("circle").classed("minute", true)
+                    .attr("r", 0.015)
+                    .attr("cy", function(d){ return Step*(d+1); })
+                    .attr("cx", 0.0);
+                    
+        var hours = hour_g.selectAll("circle")
+                .data(d3.range(NHour))
+                .enter()
+                .append("circle").classed("hour", true)
+                    .attr("r", 0.02)
+                    .attr("cy", function(d){ return Step*(d+1); })
+                    .attr("cx", 0.0);
+        
+        setInterval(
+            function()
+            {
+                var d = new Date();
+                var t = d.getTime();
+                t = Math.round(t/1000.0) - d.getTimezoneOffset()*60;
+                
+                second_g
+                    .transition().duration(100)
+                    .attr("transform", "rotate(" + (-phiSecond(t)) + ")");
+                
+                minute_g
+                    .attr("transform", "rotate(" + (-phiMinute(t)) + ")");
+                    
+                hour_g
+                    .attr("transform", "rotate(" + (-phiHour(t)) + ")");
+                    
+            },
+            100
+        )
+        
+    </script>
+
+
+</body>
+</html>
