@@ -12,7 +12,7 @@
         var Margin = 30;
         var hands = {
             "second":   { "min": 0.5, "max": 0.9,    "width": 0.01 },
-            "minute":   { "min": 0.3, "max": 0.7,   "width": 0.02 },
+            "minute":   { "min": 0.1, "max": 0.7,   "width": 0.02 },
             "hour":     { "min": 0.1, "max": 0.5,   "width": 0.04 }
         }
         var NSecond = 10;
@@ -55,7 +55,7 @@
                                             
         var face = translated.append("circle").classed("face", true)
             .attr("stroke-width", 0.01).attr("stroke", "gray")
-            .attr("fill-opacity", 0.5)
+            .attr("fill-opacity", 0.0)
             .attr("r", 1.0)
             .attr("cx", 0.0).attr("cy", 0.0);
                 
@@ -99,15 +99,6 @@
                     
                 hour_g
                     .attr("transform", "rotate(" + (-ph) + ")");
-                    
-                face
-                    .transition()
-                    .attr("fill", 
-                        "rgb(" 
-                            + ph/360.0*100.0 +"%,"
-                            + ps/360.0*100.0 +"%,"
-                        + pm/360.0*100.0 +"%"
-                    +")");
                     
             },
             100

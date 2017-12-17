@@ -9,6 +9,7 @@
     <script>
         var Size = 500;
         var Center = Size/2;
+        var Scale = (Size*0.8)/2;
         var Margin = 30;
         var NSecond = 10;
         var NMinute = 8;
@@ -16,50 +17,53 @@
         var Step = 1.0/(NSecond + 1);
         var R = Size/2 - Margin;
         
-        var Marks = [];
-        
-        for ( var i = 0; i < 12; i++ )
-        {
-            var phi = i * Math.PI/6;
-            Marks.push({
-                index: i,
-                x: Math.sin(phi), y: Math.cos(phi)
-            })
-        }
-        
-        Seconds = [];
-        for( var i = 0; i < NSecond; i++ )
-            Seconds.push({
-                r: (i+1)*Step
+        var Marks = d3.range(12)
+            .map(function(i){
+                var phi = i * Math.PI/6;
+                return {
+                    index: i,
+                    x: Math.sin(phi),
+                    y: Math.cos(phi)
+                }
             });
 
-        Minutes = [];
-        for( var i = 0; i < NMinute; i++ )
-            Minutes.push({
-                r: (i+1)*Step
-                });
-
-        Hours = [];
-        for( var i = 0; i < NHour; i++ )
-            Hours.push({
-                r: (i+1)*Step
+        var Seconds = d3.range(NSecond)
+            .map(function(i){
+                return (i+1)*Step;
             });
-
-        var ScaleX = d3.scaleLinear()
-            .domain([-1.0, 1.0])
-            .range([Center-R, Center+R]);
-
-        var ScaleY = d3.scaleLinear()
-            .domain([-1.0, 1.0])
-            .range([Center+R, Center-R]);
+            
+        var Minutes = d3.range(NMinute)
+            .map(function(i){
+                return (i+1)*Step;
+            });
+            
+        var Hours = d3.range(NHour)
+            .map(function(i){
+                return (i+1)*Step;
+            });
+            
+        var svg = d3.select("#clock").attr("width", Size).attr("height", Size);
+        var translated = svg
+            .append("g").attr("transform", "translate(" + Center + " " + Center + ")," +
+                "scale(" + Scale + " " + (-Scale) + ")");
+        
+        var marks = translated.selectAll(".mark")
+            .data(Marks)
+            .enter()
+            .append("circle").classed("mark", true)
+                .attr("r", function(d, i) { return (i % 3) ? 0.02 : 0.03; })
+                .attr("cx", function(d){ return d.x;})
+                .attr("cy", function(d){ return d.y;})
+                .attr("fill", "black");
 
         function x(p, r)
         {
-            return ScaleX(r*Math.sin(p));
+            return r*Math.sin(p);
         }
+        
         function y(p, r)
         {
-            return ScaleY(r*Math.cos(p));
+            return r*Math.cos(p);
         }
 
         function secondDot(t, i, r, cvt)
@@ -84,36 +88,26 @@
             return cvt(p, r);
         }
 
-        var svg = d3.select("#clock")
-            .attr("width", Size)
-            .attr("height", Size);
-        
-        var marks = svg.selectAll(".mark")
-            .data(Marks)
-            .enter()
-            .append("circle").classed("mark", true)
-                .attr("r", function(d, i) { return (i % 3) ? 3 : 5; })
-                .attr("cx", function(d){ return ScaleX(d.x);})
-                .attr("cy", function(d){ return ScaleY(d.y);})
-                .attr("fill", "black");
-                
-        var seconds = svg.selectAll(".second")
+        var seconds = translated.selectAll(".second")
                 .data(Seconds)
                 .enter()
                 .append("circle").classed("second", true)
-                    .attr("r", 2);
+                    .attr("r", 0.01)
+                    .attr("fill", "black");
                     
-        var minutes = svg.selectAll(".minute")
+        var minutes = translated.selectAll(".minute")
                 .data(Minutes)
                 .enter()
                 .append("circle").classed("minute", true)
-                    .attr("r", 3);
+                    .attr("fill", "black")
+                    .attr("r", 0.015);
                     
-        var hours = svg.selectAll(".hour")
+        var hours = translated.selectAll(".hour")
                 .data(Hours)
                 .enter()
                 .append("circle").classed("hour", true)
-                    .attr("r", 4);
+                    .attr("fill", "black")
+                    .attr("r", 0.018);
         
         
         //var timer = d3.timer(
@@ -126,24 +120,18 @@
                 t = Math.round(t/1000.0) - d.getTimezoneOffset()*60;
                 
                 seconds
-                    .attr("fill", "black")
                     .transition()
                         .duration(250)
-                    .attr("cx", function(d, i) { return secondDot(t, i, d.r, x); })
-                    .attr("cy", function(d, i) { return secondDot(t, i, d.r, y); });
+                    .attr("cx", function(d, i) { return secondDot(t, i, d, x); })
+                    .attr("cy", function(d, i) { return secondDot(t, i, d, y); });
                 
                 minutes
-                    .attr("fill", "black")
-                    .transition()
-                    .attr("cx", function(d, i) { return minuteDot(t, i, d.r, x); })
-                    .attr("cy", function(d, i) { return minuteDot(t, i, d.r, y); });
+                    .attr("cx", function(d, i) { return minuteDot(t, i, d, x); })
+                    .attr("cy", function(d, i) { return minuteDot(t, i, d, y); });
                     
                 hours
-                    .attr("fill", "black")
-                    .transition()
-                        .duration(250)
-                    .attr("cx", function(d, i) { return hourDot(t, i, d.r, x); })
-                    .attr("cy", function(d, i) { return hourDot(t, i, d.r, y); });
+                    .attr("cx", function(d, i) { return hourDot(t, i, d, x); })
+                    .attr("cy", function(d, i) { return hourDot(t, i, d, y); });
                     
             },
             100
