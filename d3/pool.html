@@ -1,0 +1,92 @@
+<html>
+<head>
+    <script src="https://d3js.org/d3.v4.js"></script>
+</head>
+
+<body>
+    <svg id="world"></svg>
+
+    <script>
+        var NPart = 19;
+        var Size = 500;
+        var Center = Size/2;
+        var Scale = Size/2;
+        var Bounds  =  {
+            x0: -1.0,
+            x1: 1.0,
+            y0: -1.0,
+            y1: 1.0
+        };
+        
+        var R = 0.03;
+        var RandomKick = 0.0;
+        var Particles = d3.range(NPart)
+            .map(
+                function(d)
+                {
+                    return {
+                        x: Math.random()*2-1,
+                        y: Math.random()*2-1,
+                        vx: Math.random()*2-1,
+                        vy: Math.random()*2-1,
+                        r: R,
+                        index: d 
+                    }
+                }
+            );
+            
+        var svg = d3.select("#world").attr("width", Size).attr("height", Size);
+        var translated = svg
+            .append("g").attr("transform", "translate(" + Center + " " + Center + ")," +
+                "scale(" + Scale + " " + (-Scale) + ")");
+                
+        var particles = translated.selectAll(".particle")
+                .data(Particles)
+                .enter()
+                .append("circle").classed("particle", true)
+                .attr("cx", function(d){ return d.x; })
+                .attr("cy", function(d){ return d.y; })
+                .attr("fill", "white").attr("fill-opacity", 0.0)
+                .attr("stroke", "black").attr("stroke-width", R/10)
+                .attr("r", R);
+                
+        var simulation = d3.forceSimulation()
+                .force("collision", d3.forceCollide(R*2).strength(1.0))
+                .force("random", function(alpha)
+                    {
+                        for(var i in Particles)
+                        {
+                            var p = Particles[i];
+                            p.vx += RandomKick*(Math.random()*2-1)*alpha*0.1;
+                            p.vy += RandomKick*(Math.random()*2-1)*alpha*0.1;
+                        }
+                    })
+                .force("bounds", function(alpha)
+                    {
+                        for(var i in Particles)
+                        {
+                            var p = Particles[i];
+                            if( p.x + p.r > Bounds.x1 || p.x + p.r + p.vx*alpha > Bounds.x1 ||
+                                p.x - p.r < Bounds.x0 || p.x - p.r + p.vx*alpha < Bounds.x0 )
+                                    p.vx = -p.vx;
+                            if( p.y + p.r > Bounds.y1 || p.y + p.r + p.vy*alpha > Bounds.y1 ||
+                                p.y - p.r < Bounds.y0 || p.y - p.r + p.vy*alpha < Bounds.y0 )
+                                    p.vy = -p.vy;
+                        }
+                        
+                    }
+                )
+                .on("tick", function()
+                    {
+                        particles
+                            .attr("cx", function(d){ return d.x; })
+                            .attr("cy", function(d){ return d.y; });
+                    
+                    })
+                .alphaDecay(0.0)
+                .nodes(Particles);
+    </script>
+</body>
+</html>
+                
+        

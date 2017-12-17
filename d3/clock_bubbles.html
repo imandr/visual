@@ -1,6 +1,25 @@
 <html>
 <head>
     <script src="https://d3js.org/d3.v4.js"></script>
+    
+    <style type="text/css">
+        line.mark {
+            stroke: gray;
+        }
+        line.hand {
+            stroke: gray;
+        }
+        line.hour {
+            stroke-width: 0.018;
+        }
+        line.minute {
+            stroke-width: 0.015;
+        }
+        line.second {
+            stroke-width: 0.010;
+        }
+    </style>
+    
 </head>
 
 <body>
@@ -14,7 +33,7 @@
         var NSecond = 10;
         var NMinute = 8;
         var NHour = 5;
-        var NBubbles = 5;
+        var NBubbles = 10;
         var Step = 1.0/(NSecond + 1);
         var R = Size/2 - Margin;
         var ColorScheme = d3.scaleOrdinal(d3.schemeCategory10),
@@ -140,39 +159,33 @@
         var marks = translated.selectAll(".mark")
             .data(Marks)
             .enter()
-            .append("circle").classed("mark", true)
-                .attr("r", function(d, i) { return d.r; })
-                .attr("cx", function(d){ return d.x;})
-                .attr("cy", function(d){ return d.y;})
-                .attr("fill", "black");
+            .append("line").classed("mark", true)
+                .attr("stroke-width", function(d){ return d.r; })
+                .attr("x1", function(d){ return d.x;})
+                .attr("y1", function(d){ return d.y;})
+                .attr("x2", function(d){ return d.x*(1.0 - 2*d.r);})
+                .attr("y2", function(d){ return d.y*(1.0 - 2*d.r);});
+                                        
+        var secondHand = translated
+                .append("line").classed("second", true).classed("hand", true)
+                    .attr("x1", Seconds[0].x)
+                    .attr("y1", Seconds[0].y)
+                    .attr("x2", Seconds[Seconds.length-1].x)
+                    .attr("y2", Seconds[Seconds.length-1].y);
 
-
-        var seconds = translated.selectAll(".second")
-                .data(Seconds)
-                .enter()
-                .append("circle").classed("second", true)
-                    .attr("r", function(d){ return d.r; })
-                    .attr("cx", function(d){ return d.x;})
-                    .attr("cy", function(d){ return d.y;})
-                    .attr("fill", "black");
-                    
-        var minutes = translated.selectAll(".minute")
-                .data(Minutes)
-                .enter()
-                .append("circle").classed("minute", true)
-                    .attr("r", function(d){ return d.r; })
-                    .attr("cx", function(d){ return d.x;})
-                    .attr("cy", function(d){ return d.y;})
-                    .attr("fill", "black");
-                    
-        var hours = translated.selectAll(".hour")
-                .data(Hours)
-                .enter()
-                .append("circle").classed("hour", true)
-                    .attr("fill", "black")
-                    .attr("r", function(d){ return d.r; })
-                    .attr("cx", function(d){ return d.x;})
-                    .attr("cy", function(d){ return d.y;});
+        var minuteHand = translated
+                .append("line").classed("minute", true).classed("hand", true)
+                    .attr("x1", Minutes[0].x)
+                    .attr("y1", Minutes[0].y)
+                    .attr("x2", Minutes[Minutes.length-1].x)
+                    .attr("y2", Minutes[Minutes.length-1].y);
+                
+        var hourHand = translated
+                .append("line").classed("hour", true).classed("hand", true)
+                    .attr("x1", Hours[0].x)
+                    .attr("y1", Hours[0].y)
+                    .attr("x2", Hours[Hours.length-1].x)
+                    .attr("y2", Hours[Hours.length-1].y);
                     
         var bubbles = translated.selectAll(".bubble")
                 .data(Bubbles)
@@ -211,34 +224,86 @@
             updateHand(Minutes, t, minuteDot);
             updateHand(Hours, t, hourDot);
             
-            seconds
-                .transition()
-                    .duration(250)
-                .attr("cx", function(d) { return d.x; })
-                .attr("cy", function(d) { return d.y; });
-        
-            minutes
-                .attr("cx", function(d) { return d.x; })
-                .attr("cy", function(d) { return d.y; });
+            secondHand.transition().duration(250)
+                    .attr("x1", Seconds[0].x)
+                    .attr("y1", Seconds[0].y)
+                    .attr("x2", Seconds[Seconds.length-1].x)
+                    .attr("y2", Seconds[Seconds.length-1].y);
             
-            hours
-                .attr("cx", function(d) { return d.x; })
-                .attr("cy", function(d) { return d.y; });
+            minuteHand
+                    .attr("x1", Minutes[0].x)
+                    .attr("y1", Minutes[0].y)
+                    .attr("x2", Minutes[Minutes.length-1].x)
+                    .attr("y2", Minutes[Minutes.length-1].y)
+            hourHand
+                    .attr("x1", Hours[0].x)
+                    .attr("y1", Hours[0].y)
+                    .attr("x2", Hours[Hours.length-1].x)
+                    .attr("y2", Hours[Hours.length-1].y)
             
         }
 
         var allDots = Marks.concat(Hours).concat(Minutes).concat(Seconds).concat(Bubbles);
 
+        function collide(node) {
+          var r = node.r + 1,
+              nx1 = node.x - r,
+              nx2 = node.x + r,
+              ny1 = node.y - r,
+              ny2 = node.y + r;
+          return function(qnode, x1, y1, x2, y2) {
+                var qn = qnode.data;
+                if (qn && (qn !== node)) {
+                  var x = node.x - qn.x,
+                      y = node.y - qn.y,
+                      l = Math.sqrt(x * x + y * y),
+                      rmin = node.r + qn.r + 0.05;
+                  if (l < rmin) {
+                    l = (l - rmin) / l * .2;
+                    x *= l;
+                    y *= l;
+                    if( node.fx == null )   node.x -= x;
+                    if( node.fy == null )   node.y -= y;
+                    if( qn.fx == null ) qn.x += x;
+                    if( qn.fy == null ) qn.y += y;
+                  }
+                }
+                return x1 > nx2
+                    || x2 < nx1
+                    || y1 > ny2
+                    || y2 < ny1;
+          };
+        }
+
         var simulation = d3.forceSimulation()
+            /*
             .force("collision", 
-                    d3.forceCollide(0.2)
+                    d3.forceCollide(0.15)
                         .strength(0.1)
                         //.radius(function(d,i){ return d.r*2; })
                         .iterations(2)
             )
-            .force("attraction", d3.forceManyBody().strength(0.001))
+            */
+            .force("attraction", d3.forceManyBody().strength(0.0003))
+            .force("gravity", function(alpha){
+                for( var i in allDots )
+                {
+                    dot = allDots[i];
+                    dot.vy -= alpha*0.1*0.04;
+                }
+                
+            })
             .on("tick", function()
                 {
+                    var q = d3.quadtree()
+                        .x(function(d){ return d.x; })
+                        .y(function(d){ return d.y; })
+                        .addAll(allDots);
+
+                    for( var i in allDots ) {
+                      q.visit(collide(allDots[i]));
+                    }
+                    
                     bubbles
                         .attr("cx", function(d){ return d.x; })
                         .attr("cy", function(d){ return d.y; });
@@ -247,8 +312,6 @@
             .alphaDecay(0.0)
             .nodes(allDots);
         
-        
-        //var timer = d3.timer(
         
         setInterval(
             function()
