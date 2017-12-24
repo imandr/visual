@@ -1,0 +1,68 @@
+<html>
+<head>
+    <script src="https://d3js.org/d3.v4.js"></script>
+</head>
+
+<body>
+    <ol id="lst">
+    </ol>
+    
+    <script>
+        
+        var inx = 0;
+        var data = [];
+        
+        /*
+        var items = d3.select("#lst").selectAll("li")
+            .data(data)
+            .enter()
+                .append("li").text(function(d){return d;});
+        */
+        
+        function updateData()
+        {
+            for( var i in data )
+            {
+                var j = data.length - i - 1;
+                if( Math.random() < 0.2 )
+                {
+                    data.splice(j,1);
+                }    
+            }
+            
+            data.push(inx++);
+            data.push(inx++);
+        }
+        
+        function updateDisplay()
+        {
+            var lst = d3.select("#lst").selectAll("li")
+                .data(data, function(d){ return d; })
+                .attr("style", "color:black");    //.text(function(d){return d;});
+            var enter = lst.enter();
+            var exit = lst.exit();
+            
+            
+            enter
+                .append("li")
+                .text(function(d){
+                    return d;
+                })
+                .attr("style", "color:green");
+            
+            exit
+                .remove();
+        }
+        
+        setInterval(
+            function()
+            {
+                updateData();
+                updateDisplay();
+            },
+            1000
+        );
+        
+    </script>
+        
+</body>

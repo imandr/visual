@@ -1,0 +1,70 @@
+<html>
+<head>
+    <script src="https://d3js.org/d3.v4.js"></script>
+</head>
+
+<body>
+    <svg id="plot"></svg>
+    
+    <script>
+        var NPoints = 100;
+        var SizeX = 800,
+            SizeY = 600,
+            Margin = {
+                left: 60,  right:20,
+                bottom: 40, top:20
+            };
+
+        var data = d3.range(NPoints)
+            .map(function(){
+                var x = Math.random();
+                x = x*x;
+                return {
+                    x:    x,
+                    y:    Math.pow(x,x)
+                };
+            });
+
+        var svg = d3.select("#plot")
+            .attr("width", SizeX)
+            .attr("height", SizeY);
+            
+        var translated = svg
+            .append("g").attr("transform", "translate(" 
+                + Margin.left + " " + Margin.top + ")");
+                
+        var x_axis_g = translated
+            .append("g").attr("transform", "translate(" 
+                + 0 + " " + (SizeY - Margin.bottom) + ")");
+                
+        var y_axis_g = translated
+                .append("g").attr("transform", "translate(" 
+                + 0 + " " + 0 + ")");
+                        
+        var x_scale = d3.scaleLinear()
+                        .domain([0,1])
+                        .range([0,SizeX-Margin.right-Margin.left]);
+
+        var y_scale = d3.scaleLinear()
+                        .domain([0,1])
+                        .range([SizeY-Margin.bottom, Margin.top]);
+
+        var x_axis = d3.axisBottom(x_scale);
+        var y_axis = d3.axisLeft(y_scale);
+        
+        x_axis_g.append("g").call(x_axis);
+        y_axis_g.append("g").call(y_axis);
+        
+        translated.selectAll(".dot")
+            .data(data)
+            .enter()
+                .append("circle").classed("dot", true)
+                    .attr("cx", function(d){ return x_scale( d.x); })
+                    .attr("cy", function(d){ return y_scale( d.y); })
+                    .attr("r", 1.0)
+                    .attr("fill", "black");
+        
+    </script>
+</body>
+</html>
+        

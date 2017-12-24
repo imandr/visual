@@ -1,0 +1,179 @@
+<html>
+<head>
+    <script src="https://d3js.org/d3.v4.js"></script>
+    <style type="text/css">
+        line.link {
+            stroke: gray;
+            stroke-width: 1;
+        }
+        
+        line.temp {
+            stroke-width: 3;
+            stroke: blue;
+        }
+    </style>
+</head>
+
+<body>
+    <svg></svg>
+
+    <script>
+        const NNodes = 33;
+        const Size = 800,
+            Half = Size/2,
+            Center = Size/2,
+            Scale = 0.5;
+        
+        var Nodes = d3.range(NNodes)
+            .map((i) => ({ index:i, x:(Math.random()*2-1)*Half, y:(Math.random()*2-1)*Half }));
+
+        var Links = [];
+        
+        Links.linked = function(i, j)
+        {
+            if( i > j )
+            {
+                let k = i;
+                i = j;
+                j = k;
+            }
+            let ijid = i*1000+j;
+            for( let k=0; k<this.length; k++ )
+                if( this[k].id == ijid )
+                    return true;
+            return false;
+        }
+        
+        Links.addLink = function(i, j, t, d)
+        {
+            if( i > j )
+            {
+                let k = i;
+                i = j;
+                j = k;
+            }
+            if( this.linked(i,j) ) return false;
+            this.push({
+                id:i*1000+j,
+                source:Nodes[i],
+                target:Nodes[j],
+                distance: d,
+                expire:t == null ? null : (new Date()).getTime() + t
+            })
+            return true;
+        }
+        
+        Links.addRandom = function(d)
+        {
+            let i = Math.floor(Math.random()*Nodes.length);
+            let j = Math.floor(Math.random()*Nodes.length);
+            let t = (Math.random()*5+3)*1000;
+            return this.addLink(i,j,t,d);
+        }
+        
+        Links.purge = function()
+        {
+            let t = (new Date()).getTime();
+            for( let k=0; k<this.length; k++ )
+            {
+                let j = this.length - k - 1;
+                if( this[j].expire != null && this[j].expire < t )
+                    this.splice(j, 1);
+            }
+        }
+        
+        for ( let k = 0; k < Nodes.length; k++ )
+        {
+            let j = (k+3)%Nodes.length;
+            Links.addLink(k, j, null, 100);
+        }
+            
+        var svg = d3.select("svg")
+            .attr("width", Size).attr("height", Size);
+
+        var translated = svg
+            .append("g")
+            .attr("transform", "translate(" + Center + " " + Center + ")," + 
+                    "scale(" + Scale + " " + (-Scale) + ")");   
+            
+        var nodes = translated.selectAll("circle.node")
+            .data(Nodes)         
+            .enter()
+            .append("circle").classed("node", true)
+                .attr("r", 5)
+                
+        var links = translated.selectAll("line.link")
+            .data(Links, (l)=>l.id)         
+            .enter()
+                .append("line").classed("link", true).classed("perm", true);
+                
+        var LinkForce = d3.forceLink(Links).distance((d)=>d.distance);
+
+        var Simulation = d3.forceSimulation(Nodes)
+            .force("center", d3.forceCenter())
+            .force("links", LinkForce)
+            .force("repulse", d3.forceManyBody(-1))
+            .alphaDecay(0.0)
+            .on("tick", function()
+                {
+                    nodes
+                        .attr("cx", (d) => d.x)
+                        .attr("cy", (d) => d.y);
+                        
+                    links_update = translated.selectAll("line.link")
+                        .data(Links, (l)=>l.id);
+                        
+                    links_update.enter()
+                            .append("line").classed("link", true).classed("temp", true);
+                            
+                    links_update.exit().remove();
+                    
+                    links = translated.selectAll("line.link");
+                    
+                    links.data(Links)
+                        .attr("x1", (d) => d.source.x)
+                        .attr("y1", (d) => d.source.y)
+                        .attr("x2", (d) => d.target.x)
+                        .attr("y2", (d) => d.target.y);
+                }
+            );
+            
+        setInterval(
+            function()
+            {
+                /*
+                var nlinks = Links.length;
+                for( var i in Links )
+                {
+                    let j = nlinks - i - 1;
+                    if( Math.random() < 0.5 )
+                        Links.splice(j, 1);
+                }
+                */
+                
+                Links.purge();
+                
+                while( true )
+                {
+                    if( Math.random() < 0.1 )
+                    {
+                        for( let k = 0; k < 5 && !Links.addRandom(10); k++ )
+                            ;
+                    }
+                    else
+                        break;
+                }
+                
+                
+                LinkForce.links(Links);
+                Simulation.alpha(1.0);
+                
+            },
+            100
+        );
+        
+                
+    </script>
+</body>
+
+</html>
