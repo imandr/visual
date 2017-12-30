@@ -1,0 +1,28 @@
+<html>
+<head>
+    <!-- <script src="https://d3js.org/d3.v4.js"></script> -->
+    <script src="file:///Users/igorvm/Downloads/d3/d3.js"></script>
+</head>
+
+<body>
+    <ul id="lst"></ul>
+    <script>
+        let now = new Date(),
+            t0 = new Date(now.getTime() - 100*1000),
+            t1 = now;
+
+        let scale = d3.scaleTime().domain([t0, t1]).range([0.0, 1.0]);
+        
+        var data = d3.range(10).map(function(i){
+            var t = t0.getTime() + i*1000;
+            var dt = new Date(t);
+            return dt;
+        });
+        
+        d3.select("#lst").selectAll("li").data(data)
+            .enter()
+            .append("li").text((d)=>(""+d+"->"+scale(d)+","+scale(d.getTime())));
+        
+    </script>
+</body>
+</html>

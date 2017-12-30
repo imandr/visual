@@ -1,0 +1,178 @@
+<html>
+<head>
+    <!-- <script src="https://d3js.org/d3.v4.js"></script> -->
+    <script src="file:///Users/igorvm/Downloads/d3/d3.js"></script>
+    
+    <style type="text/css">
+        line.individual {
+            stroke:blue;
+            stroke-width:1;
+        }
+        line.summary {
+            stroke:green;
+        }
+        line.step {
+            stroke-width: 0.5;
+            stroke-opacity: 0.5;
+        }
+        line.level {
+            stroke-width: 2;
+        }
+    </style>
+</head>
+
+<body>
+    <svg id="plot"></svg>
+    
+    <script>
+        var NPoints = 100;
+        var SizeX = 800,
+            SizeY = 600,
+            Margin = {
+                left: 60,  right:60,
+                bottom: 40, top:20
+            };
+
+        function generateData(npoints, interval, duration)
+        {
+            let now = (new Date()).getTime();
+            let t0 = now - interval * 1000;
+            var data = [];
+            var maxr = 0.0;
+            for( let i = 0; i < npoints; i++ )
+            {
+                let r = Math.random();
+                let t = t0 + Math.random()*(interval-duration)*1000;
+                data.push({
+                    t: t,
+                    dt: new Date(t),
+                    l: (1.0 + Math.random()*(duration-1.0))*1000.0,
+                    r: r
+                });
+            }
+            data.sort((a,b)=>(a.t-b.t))
+            return data;
+        }
+        
+        function calcTotal(data)
+        {
+            var changes = [];
+            var maxr = 0;
+            for( let i in data )
+            {
+                let d = data[i];
+                changes.push({t:d.t, d:d.r, dt: new Date(d.t)});
+                changes.push({t:d.t+d.l, dt: new Date(d.t+d.l), d:-d.r});
+            }
+            changes.sort((a,b)=>(a.t-b.t));
+            var out = [];
+            var r = 0.0;
+            for( let i in changes )
+            {
+                let c = changes[i];
+                var int = {t:c.t, r0:r, r1:0, t1:c.t};
+                int.r = r += c.d;
+                out.push(int);
+                if( r > maxr )  maxr = r;
+                last = r;
+                if( i > 0 )
+                {
+                    out[i-1].r1 = r;
+                    out[i-1].t1 = c.t;
+                }
+            }
+            return { sum:out, maxr:maxr };
+        }
+        
+        var data = generateData(30, 3600, 300);
+        var totals = calcTotal(data);
+        var totalr = totals.sum;
+        var maxtotal = totals.maxr;
+        var timeRange = [
+            new Date(totalr[0].t),
+            new Date(totalr[totalr.length-1].t)
+        ];
+        
+        var time_ticks = d3.ticks(timeRange[0], timeRange[1], 10),
+            step = time_ticks[1] - time_ticks[0];
+        timeRange[0] = new Date(time_ticks[0]-step);
+        timeRange[1] = new Date(time_ticks[time_ticks.length-1]+step);
+        
+        var y2_ticks = d3.ticks(0, maxtotal, 10);
+        var y2_step = y2_ticks[1] - y2_ticks[0];
+        var y2_max = y2_ticks[y2_ticks.length-1]+y2_step;
+
+        var svg = d3.select("#plot")
+            .attr("width", SizeX)
+            .attr("height", SizeY);
+            
+        var translated = svg
+            .append("g").attr("transform", "translate(" 
+                + Margin.left + " " + Margin.top + ")");
+                
+        var t_axis_g = translated
+            .append("g").attr("transform", "translate(" 
+                + 0 + " " + (SizeY - Margin.bottom) + ")");
+                
+        var y1_axis_g = translated
+                .append("g").attr("transform", "translate(" 
+                + 0 + " " + 0 + ")");
+
+        var y2_axis_g = translated
+                .append("g").attr("transform", "translate(" 
+                + (SizeX-Margin.right-Margin.left) + " " + 0 + ")");
+                
+        var t_scale = d3.scaleTime()
+                        .domain(timeRange)
+                        .range([0,SizeX-Margin.right-Margin.left]);
+
+        var y1_scale = d3.scaleLinear()
+                        .domain([0,1])
+                        .range([SizeY-Margin.bottom, Margin.top]);
+
+        var y2_scale = d3.scaleLinear()
+                        .domain([0,y2_max])
+                        .range([SizeY-Margin.bottom, Margin.top]);
+
+        var t_axis = d3.axisBottom(t_scale);
+        var y1_axis = d3.axisLeft(y1_scale);
+        var y2_axis = d3.axisRight(y2_scale);
+        
+        t_axis_g.append("g").call(t_axis);
+        y1_axis_g.append("g").call(y1_axis);
+        y2_axis_g.append("g").call(y2_axis);
+        
+        translated.selectAll(".individual")
+            .data(data)
+            .enter()
+                .append("line").classed("individual", true)
+                    .attr("x1", (d)=>t_scale(d.dt))
+                    .attr("x2", function(d){
+                        var dt = new Date(d.dt.getTime() + d.l);
+                        var x = t_scale(dt);
+                        return x;
+                    })
+                    .attr("y1", (d)=>y1_scale(d.r))
+                    .attr("y2", (d)=>y1_scale(d.r));
+                    
+        var sumline = translated.selectAll(".summary")
+            .data(totalr)
+            .enter();
+            
+        sumline.append("line").classed("summary", true).classed("step", true)
+            .attr("x1", (d)=>t_scale(d.t))
+            .attr("x2", (d)=>t_scale(d.t))
+            .attr("y1", (d)=>y2_scale(d.r0))
+            .attr("y2", (d)=>y2_scale(d.r));
+            
+        sumline.append("line").classed("summary", true).classed("level", true)
+            .attr("x1", (d)=>t_scale(d.t))
+            .attr("x2", (d)=>t_scale(d.t1))
+            .attr("y1", (d)=>y2_scale(d.r))
+            .attr("y2", (d)=>y2_scale(d.r));
+            
+        
+    </script>
+</body>
+</html>
+        
