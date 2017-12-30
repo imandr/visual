@@ -3,25 +3,29 @@
     <script src="https://d3js.org/d3.v4.js"></script>
     
     <style type="text/css">
-        line.mark {
+        circle.mark {
+            fill: black;
+            fill-opacity: 0.6;
             stroke: black;
+            stroke-width: 0.002;
         }
-        line.hand {
-            stroke: black;
-        }
-        line.hour {
-            stroke-width: 0.018;
-        }
-        line.minute {
-            stroke-width: 0.015;
-        }
-        line.second {
-            stroke-width: 0.010;
-        }
+
         circle.bubble {
             fill-opacity: 0.5;
             stroke: black;
             stroke-width: 0.001;
+        }
+        
+        circle.hand {
+            fill: black;
+            fill-opacity: 0.8;
+            stroke: black;
+            stroke-width: 0.002;
+        }
+        
+        circle.second {
+            fill:red;
+            stroke:red;
         }
     </style>
     
@@ -35,26 +39,29 @@
         var Center = Size/2;
         var Scale = (Size*0.8)/2;
         var Margin = 30;
-        var NBubbles = 0;
         let Hands = {
-            "step": 0.005,
-            "r": 0.01,
             "second": {
-                r0: 0.05,
+                "step": 0.03,
+                "r": 0.015,
+                r0: 0.1,
                 r1: 0.95
             },
             "minute": {
+                "step": 0.1,
+                "r": 0.03,
                 r0: 0.05,
-                r1: 0.8
+                r1: 0.75
             },
             "hour": {
+                "step": 0.1,
+                "r": 0.04,
                 r0: 0.05,
                 r1: 0.5
             }
         }
-        let NSecond = Math.floor((Hands.second.r1-Hands.second.r0)/Hands.step) + 1;
-        let NMinute = Math.floor((Hands.minute.r1-Hands.minute.r0)/Hands.step) + 1;
-        var NHour = Math.floor((Hands.hour.r1-Hands.hour.r0)/Hands.step) + 1;
+        let NSecond = Math.floor((Hands.second.r1-Hands.second.r0)/Hands.second.step) + 1;
+        let NMinute = Math.floor((Hands.minute.r1-Hands.minute.r0)/Hands.minute.step) + 1;
+        var NHour = Math.floor((Hands.hour.r1-Hands.hour.r0)/Hands.hour.step) + 1;
         var R = Size/2 - Margin;
         var ColorSchemes = [
             {
@@ -129,7 +136,7 @@
 
         var Seconds = d3.range(NSecond)
             .map(function(i){
-                var r = Hands.second.r0 + i*Hands.step;
+                var r = Hands.second.r0 + i*Hands.second.step;
                 return {
                     type: "second",
                     index: i+i0,
@@ -138,7 +145,7 @@
                     y: r,
                     fx: 0,
                     fy: r,
-                    r: Hands.r,
+                    r: Hands.second.r,
                     mass: 1
                 }
             });
@@ -147,7 +154,7 @@
             
         var Minutes = d3.range(NMinute)
             .map(function(i){
-                var r = Hands.minute.r0 + i*Hands.step;
+                var r = Hands.minute.r0 + i*Hands.minute.step;
                 return {
                     type: "minute",
                     index: i+i0,
@@ -156,7 +163,7 @@
                     y: r,
                     fx: 0,
                     fy: r,
-                    r: Hands.r,
+                    r: Hands.minute.r,
                     mass: 1
                 }
             });
@@ -165,7 +172,7 @@
             
         var Hours = d3.range(NHour)
             .map(function(i){
-                var r = Hands.hour.r0 + i*Hands.step;
+                var r = Hands.hour.r0 + i*Hands.hour.step;
                 return {
                     type: "hour",
                     index: i+i0,
@@ -174,7 +181,7 @@
                     y: r,
                     fx: 0,
                     fy: r,
-                    r: Hands.r,
+                    r: Hands.hour.r,
                     mass: 1
                 }
             });
@@ -202,13 +209,8 @@
             return bubble;
         }
         
-        var Bubbles = d3.range(NBubbles)
-            .map(
-                function(i){ return createBubble(i+i0); }
-            )
+        var Bubbles = [];
             
-        var nextBubbleIndex = i0 + NBubbles;
-        
         var svg = d3.select("#clock").attr("width", Size).attr("height", Size);
         var translated = svg
             .append("g").attr("transform", "translate(" + Center + " " + Center + ")," +
@@ -227,33 +229,34 @@
         var marks = translated.selectAll(".mark")
             .data(Marks)
             .enter()
-            .append("line").classed("mark", true)
-                .attr("stroke-width", function(d){ return d.r; })
-                .attr("x1", function(d){ return d.x;})
-                .attr("y1", function(d){ return d.y;})
-                .attr("x2", function(d){ return d.x*(1.0 - 2*d.r);})
-                .attr("y2", function(d){ return d.y*(1.0 - 2*d.r);});
+            .append("circle").classed("mark", true)
+                .attr("r", function(d){ return d.r; })
+                .attr("cx", function(d){ return d.x;})
+                .attr("cy", function(d){ return d.y;});
                                         
-        var secondHand = translated
-                .append("line").classed("second", true).classed("hand", true)
-                    .attr("x1", Seconds[0].x)
-                    .attr("y1", Seconds[0].y)
-                    .attr("x2", Seconds[Seconds.length-1].x)
-                    .attr("y2", Seconds[Seconds.length-1].y);
+        var secondHand = translated.selectAll(".second")
+            .data(Seconds)
+            .enter()
+            .append("circle").classed("hand", true).classed("second", true)
+                .attr("r", function(d){ return d.r; })
+                .attr("cx", function(d){ return d.x;})
+                .attr("cy", function(d){ return d.y;});
 
-        var minuteHand = translated
-                .append("line").classed("minute", true).classed("hand", true)
-                    .attr("x1", Minutes[0].x)
-                    .attr("y1", Minutes[0].y)
-                    .attr("x2", Minutes[Minutes.length-1].x)
-                    .attr("y2", Minutes[Minutes.length-1].y);
+        var minuteHand = translated.selectAll(".minute")
+            .data(Minutes)
+            .enter()
+            .append("circle").classed("hand", true).classed("minute", true)
+                .attr("r", function(d){ return d.r; })
+                .attr("cx", function(d){ return d.x;})
+                .attr("cy", function(d){ return d.y;});
                 
-        var hourHand = translated
-                .append("line").classed("hour", true).classed("hand", true)
-                    .attr("x1", Hours[0].x)
-                    .attr("y1", Hours[0].y)
-                    .attr("x2", Hours[Hours.length-1].x)
-                    .attr("y2", Hours[Hours.length-1].y);
+        var hourHand = translated.selectAll(".hour")
+            .data(Hours)
+            .enter()
+            .append("circle").classed("hand", true).classed("hour", true)
+                .attr("r", function(d){ return d.r; })
+                .attr("cx", function(d){ return d.x;})
+                .attr("cy", function(d){ return d.y;});
                     
         var bubbles = translated.selectAll(".bubble")
                 .data(Bubbles, function(d){ return d.index; })
@@ -296,25 +299,23 @@
                 updateHand(Seconds, t, secondDot);
                 updateHand(Minutes, t, minuteDot);
                 updateHand(Hours, t, hourDot);
+                
+                secondHand.data(Seconds)
+                    .attr("r", function(d){ return d.r; })
+                    .attr("cx", function(d){ return d.x;})
+                    .attr("cy", function(d){ return d.y;});
+                
+                minuteHand.data(Minutes)
+                    .attr("r", function(d){ return d.r; })
+                    .attr("cx", function(d){ return d.x;})
+                    .attr("cy", function(d){ return d.y;});
+                
+                hourHand.data(Hours)
+                    .attr("r", function(d){ return d.r; })
+                    .attr("cx", function(d){ return d.x;})
+                    .attr("cy", function(d){ return d.y;});
+                
             
-                secondHand.transition().duration(250)
-                        .attr("x1", Seconds[0].x)
-                        .attr("y1", Seconds[0].y)
-                        .attr("x2", Seconds[Seconds.length-1].x)
-                        .attr("y2", Seconds[Seconds.length-1].y);
-            
-                minuteHand
-                        .attr("x1", Minutes[0].x)
-                        .attr("y1", Minutes[0].y)
-                        .attr("x2", Minutes[Minutes.length-1].x)
-                        .attr("y2", Minutes[Minutes.length-1].y);
-                        
-                hourHand
-                        .attr("x1", Hours[0].x)
-                        .attr("y1", Hours[0].y)
-                        .attr("x2", Hours[Hours.length-1].x)
-                        .attr("y2", Hours[Hours.length-1].y);
-                        
                 last_t = t;
             }
             
@@ -331,9 +332,13 @@
                     Bubbles.splice(j,1);
             }
             
-            var bubble = createBubble();
-            Bubbles.push(bubble);
-            allDots.push(bubble);
+            
+            if( Bubbles.length < 100 )
+            {
+                var bubble = createBubble();
+                Bubbles.push(bubble);
+                allDots.push(bubble);
+            }
             
             var lst =  bubbleCircles();
 
