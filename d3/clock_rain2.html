@@ -23,20 +23,22 @@
             stroke-width: 0.002;
         }
         
-        circle.second {
-            fill:red;
-            stroke:red;
-        }
     </style>
     
 </head>
 
 <body>
-    <center><svg id="clock"></svg></center>
+    <center><svg id="clock" width="100%" height="100%"></svg></center>
 
     <script>
-        var Size = 700;
-        var Center = Size/2;
+
+        let svgelement = document.getElementById("clock"),
+            SizeX = svgelement.getBoundingClientRect().width,
+            SizeY = svgelement.getBoundingClientRect().height,
+            Size = Math.min(SizeX, SizeY),
+            CenterX = SizeX/2,
+            CenterY = SizeY/2;
+        
         var Scale = (Size*0.8)/2;
         var Margin = 30;
         let Hands = {
@@ -211,9 +213,9 @@
         
         var Bubbles = [];
             
-        var svg = d3.select("#clock").attr("width", Size).attr("height", Size);
+        var svg = d3.select("#clock");
         var translated = svg
-            .append("g").attr("transform", "translate(" + Center + " " + Center + ")," +
+            .append("g").attr("transform", "translate(" + CenterX + " " + CenterY + ")," +
                 "scale(" + Scale + " " + (-Scale) + ")");
 
         translated            
@@ -328,7 +330,7 @@
             for( i in Bubbles )
             {
                 var j = n - i - 1;
-                if( Bubbles[j].y < -2 )
+                if( Bubbles[j].y < -2 || Bubbles[j].y > 2 )
                     Bubbles.splice(j,1);
             }
             
