@@ -4,23 +4,27 @@
     
     <style type="text/css">
         circle.mark {
-            fill: black;
+            fill: white;
             fill-opacity: 0.6;
-            stroke: black;
+            stroke: white;
             stroke-width: 0.002;
         }
 
         circle.bubble {
-            fill-opacity: 0.5;
-            stroke: black;
+            fill-opacity: 0.4;
+            stroke: white;
             stroke-width: 0.001;
         }
         
         circle.hand {
-            fill: black;
+            fill: green;
             fill-opacity: 0.8;
-            stroke: black;
+            stroke: green;
             stroke-width: 0.002;
+        }
+        
+        rect.background {
+            fill: black;
         }
         
     </style>
@@ -214,6 +218,10 @@
         var Bubbles = [];
             
         var svg = d3.select("#clock");
+        svg.append("rect").classed("background", true)
+            .attr("x",0).attr("y",0)
+            .attr("width",SizeX).attr("height",SizeY);
+        
         var translated = svg
             .append("g").attr("transform", "translate(" + CenterX + " " + CenterY + ")," +
                 "scale(" + Scale + " " + (-Scale) + ")");
